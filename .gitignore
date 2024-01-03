@@ -1,5 +1,6 @@
 literature/
-*/test_data/
+/test_data/
+*/test_data/*
 *.exe
 .vscode
 .venv
