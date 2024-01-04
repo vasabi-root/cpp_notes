@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <iomanip>
 #include <fstream>
+#include <cmath>
 
 using std::cout;
 using std::cin;
@@ -24,17 +25,15 @@ private:
 
     Node **array_;
     List buckets_;
-    size_t *loads;
 
     size_t capacity_;
-    double avg_load_;
     double load_factor_;
 
+    Node* insert_( Node *place, const Key &key, const Value &val=Value());
 public:
-    Hashmap(size_t capacity=256, double load_factor=3.5)
+    Hashmap(size_t capacity=256, double load_factor=1.0)
     : 
     capacity_(0),
-    avg_load_(0.0),
     load_factor_(load_factor) 
     { reserve(capacity); }
 
@@ -48,34 +47,37 @@ public:
 
     struct iterator;
 
-    iterator begin() { return iterator(buckets_.head.next); }
+    iterator begin() { return iterator(buckets_.head->next); }
     iterator end() { return iterator(buckets_.head); }
 
     size_t get_hash(const Key &key) { return hashFunc(key) % capacity_; }
+    double getLoadFactor(size_t cap) { return static_cast<double>(buckets_.sz) / cap; }
 
     Value& operator [] (const Key &key);
 
     void rehash();
 
-    void reserve(const size_t &count) {
-        if (capacity_ > 0) {
-            delete [] array_;
-        }
-        array_ = new Node*[count];
-        for (size_t i = 0; i < count; ++i) {
-            array_[i] = nullptr;
-        }
+    void reserve(const size_t &count) { // count -- количество элементов, а не корзин
+        size_t cap = std::ceil(count / load_factor_);
+        if (getLoadFactor(cap) < load_factor_) {
+            if (capacity_ > 0) {
+                delete [] array_;
+            }
+            array_ = new Node*[cap];
+            for (size_t i = 0; i < cap; ++i) {
+                array_[i] = nullptr;
+            }
 
-        capacity_ = count;
-
-        rehash();
+            capacity_ = count;
+            rehash();
+        }
     }
 
     void printBuckets() {
-        Node *node = buckets_.head.next; 
+        Node *node = buckets_.head->next; 
         size_t i = 0;
 
-        while (node != &(buckets_.head) && node != nullptr) {
+        while (node != buckets_.head) {
             cout << node->hash << ": [" << node->kv.first << " " << node->kv.second << "]" << endl; 
             node = node->next;
             ++i;
@@ -87,7 +89,7 @@ public:
                 cout << i << " ";
             }
         }
-        cout << endl;
+        cout << endl << endl;
     }
     
 };
@@ -95,12 +97,16 @@ public:
 
 template <typename Key, typename Value, typename Hash, typename KeyEqual>
 struct Hashmap<Key, Value, Hash, KeyEqual>::Node {
-    Node *prev = nullptr;
-    Node *next = nullptr;
+    Node *prev;
+    Node *next;
     value_type kv;
     size_t hash;
 
-    Node (value_type kv=value_type(Key(), Value()), const size_t &hash=0): kv(kv), hash(hash) {}
+    Node (value_type kv=value_type(Key(), Value()), const size_t &hash=0)
+    : 
+    prev(this), next(this),
+    kv(kv), hash(hash) 
+    {}
 };
 
 template <typename Key, typename Value, typename Hash, typename KeyEqual>
@@ -125,26 +131,22 @@ public:
 
 template <typename Key, typename Value, typename Hash, typename KeyEqual>
 struct Hashmap<Key, Value, Hash, KeyEqual>::List {
-    Node head;
+    Node *head;
     size_t sz;
 
-    List() { sz = 0; }
+    List() : head(new Node), sz(0) {}
     ~List() { retract_all(); }
 
-    void push_front(Node *node) { insert(head.next, node); }
-    void push_back(Node *node) { insert(&head, node); }
+    void push_front(Node *node) { insert(head->next, node); }
+    void push_back(Node *node) { insert(head, node); }
 
     Node* erase(Node *node) { // требуется, чтобы node был в списке
         Node *prev = node->prev;
         Node *next = node->next;
 
-        if (prev == next) {
-            head.next = nullptr;
-            head.prev = nullptr;
-        } else {
-            prev->next = next;
-            next->prev = prev;
-        }
+        prev->next = next;
+        next->prev = prev;
+
         printBuckets();
         --sz;
 
@@ -155,56 +157,50 @@ struct Hashmap<Key, Value, Hash, KeyEqual>::List {
     void insert(Node *place, Node *node) {
         Node *prev = place->prev;
 
-        if (prev == nullptr) { // empty list
-            cout << "push_back" << endl;
-            head.next = node;
-            head.prev = node;
+        cout << "push_back" << endl;
 
-            node->next = &head;
-            node->prev = &head;
-        } else {
-            cout << "push_back" << endl;
+        prev->next = node;
 
-            prev->next = node;
+        node->prev = prev;
+        node->next = place;
 
-            node->prev = prev;
-            node->next = place;
-
-            place->prev = node;
-        }
+        place->prev = node;
 
         printBuckets();
         ++sz;
     }
 
     void retract_all() {
-        while (head.next != nullptr) {
-            delete erase(head.next);
+        while (head->next != head) {
+            delete erase(head->next);
         }
+        delete head;
     }
 
     void printBuckets() {
-        Node *node = head.next; 
+        Node *node = head->next; 
         size_t i = 0;
-        cout << head.hash << " -> ";
-        while (node != &(head) && node != nullptr) {
+        cout << head->hash << " -> ";
+        while (node != head) {
             // cout << i << ": [" << node->kv.first << " " << node->kv.second << "][" << node->hash << "]" << endl; 
             cout << node->kv.first << " -> ";
             node = node->next;
             ++i;
         }
-        cout << head.hash << endl;
+        cout << head->hash << endl;
     }
 };
 
-using pair = std::pair<std::string, size_t>;
-
-template <typename T>
-struct hash {
-    size_t operator () (const T &key){
-        return *reinterpret_cast<const size_t*>(&key);
+template <typename Key, typename Value, typename Hash, typename KeyEqual>
+typename Hashmap<Key, Value, Hash, KeyEqual>::Node* Hashmap<Key, Value, Hash, KeyEqual>::insert_(Node *place, const Key &key, const Value &val) {
+    Node *node = new Node({key, val}, get_hash(key));
+    buckets_.insert(place, node);
+    if (getLoadFactor(capacity_) > load_factor_) {
+        cout << "REHASH" << endl;
+        reserve(capacity_*2);
     }
-};
+    return node;
+}
 
 template <typename Key, typename Value, typename Hash, typename KeyEqual>
 Value& Hashmap<Key, Value, Hash, KeyEqual>::operator [] (const Key &key) {
@@ -213,7 +209,7 @@ Value& Hashmap<Key, Value, Hash, KeyEqual>::operator [] (const Key &key) {
 
     if (place != nullptr) {
         while (
-            place->next != &buckets_.head &&    // пока не дошли до конца
+            place->next != buckets_.head &&     // пока не дошли до конца
             place->hash == hash &&              // хэш соответствует посчитанному
             !equal_to(place->kv.first, key)     // и ключ не совпадает с нужным
         ) {
@@ -222,43 +218,52 @@ Value& Hashmap<Key, Value, Hash, KeyEqual>::operator [] (const Key &key) {
 
         if (
             // есди мы дошли до конца и ключ всё ещё не совпадает
-            (place->next == &buckets_.head && !equal_to(place->kv.first, key)) 
+            (place->next == buckets_.head && !equal_to(place->kv.first, key)) 
             // или мы уже дошли до конца корзины, то вершины нет -- надо создать новую
-            || place->hash != hash) {
-            Node *node = new Node({key, Value()}, hash);
-            buckets_.insert(place, node);
-            place = node;
+            || place->hash != hash
+        ) {
+            place = insert_(place, key);
+            // Node *node = new Node({key, Value()}, hash);
+            // buckets_.insert(place, node);
+            // place = node;
         } 
     } else {
-        place = new Node({key, Value()}, hash);
-        buckets_.push_back(place);
+        place = insert_(buckets_.head, key);
+        // place = new Node({key, Value()}, hash);
+        // buckets_.push_back(place);
         array_[hash] = place;
         printBuckets();
     }
-    cout << endl;
     return place->kv.second;
 }
 
 template <typename Key, typename Value, typename Hash, typename KeyEqual>
 void Hashmap<Key, Value, Hash, KeyEqual>::rehash() {
-    Node *curr = buckets_.head.next;
+    Node *curr = buckets_.head->next;
     List buckets_new;
 
-    if (curr != nullptr) {
-        while (curr != &buckets_.head) {
-            size_t hash = get_hash(curr->kv.first);
-            Node *next = curr->next;
+    while (curr != buckets_.head) {
+        size_t hash = get_hash(curr->kv.first);
+        Node *next = curr->next;
 
-            curr->hash = hash;
+        curr->hash = hash;
 
-            if (array_[hash] != nullptr && array_[hash] != curr) {
-                curr = buckets_.erase(curr);
-                buckets_.insert(array_[hash], curr);
-            } else if (array_[hash] != curr){
-                array_[hash] = curr;
-            } 
-            curr = next;
-        }
+        if (array_[hash] != nullptr && array_[hash] != curr) {
+            curr = buckets_.erase(curr);
+            buckets_.insert(array_[hash], curr);
+        } else if (array_[hash] != curr){
+            array_[hash] = curr;
+        } 
+        curr = next;
+    }
+}
+
+// using pair = std::pair<std::string, size_t>;
+
+template <typename T>
+struct hash {
+    size_t operator () (const T &key){
+        return *reinterpret_cast<const size_t*>(&key);
     }
 };
 
@@ -288,7 +293,7 @@ int main() {
 
     
     {
-        Hashmap<int, int> map; // , hash<int>, equal<int>
+        Hashmap<int, int> map(2); // , hash<int>, equal<int>
 
         cout << endl;
 
@@ -298,26 +303,20 @@ int main() {
         map[3] = 6;
 
         map.printBuckets();
-
-        map.reserve(2);
-
-        map.printBuckets();
+        cout << endl;
 
         std::string s;
 
-        Hashmap<std::string, size_t> smap;
+        Hashmap<std::string, size_t> smap(2);
 
         // size_t i = 0;
         // while (std::getline(data, s)) {
         //     smap[s] = ++i; 
         // }
         
-        
         smap["sfsf"] = 2;
         smap["sff"] = 4;
         smap["sf"] = 4;
-
-        smap.reserve(2);
 
         smap.printBuckets();
 
@@ -335,7 +334,6 @@ int main() {
     // // lst.erase(node1);
     // lst.printBuckets();
     // // lst.push_back(&Hashmap<int, int>::Node({1, 0}, 0));
-
 
     return 0;
 }
