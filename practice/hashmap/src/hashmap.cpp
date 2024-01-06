@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <fstream>
 #include <cmath>
+#include <typeinfo>
 
 using std::cout;
 using std::cin;
@@ -24,13 +25,13 @@ private:
     struct List;
 
     Node **array_;
-    List buckets_;
 
     size_t capacity_;
     double load_factor_;
 
     Node* insert_( Node *place, const Key &key, const Value &val=Value());
 public:
+    List buckets_;
     Hashmap(size_t capacity=256, double load_factor=1.0)
     : 
     capacity_(0),
@@ -120,6 +121,9 @@ public:
     using difference_type   = std::ptrdiff_t;
     using pointer           = value_type*;
     using reference         = value_type&;
+
+    iterator(Node *n) : node(n) {};
+
     reference operator * () const { return static_cast<Node*>(node)->kv; }
     // pointer* operator -> () const { return static_cast<Node*>(node)->kv; }
     iterator& operator ++ () { node = node->next; return *this; }
@@ -147,7 +151,7 @@ struct Hashmap<Key, Value, Hash, KeyEqual>::List {
         prev->next = next;
         next->prev = prev;
 
-        printBuckets();
+        // printBuckets();
         --sz;
 
         // delete node;
@@ -157,7 +161,7 @@ struct Hashmap<Key, Value, Hash, KeyEqual>::List {
     void insert(Node *place, Node *node) {
         Node *prev = place->prev;
 
-        cout << "push_back" << endl;
+        // cout << "push_back" << endl;
 
         prev->next = node;
 
@@ -166,7 +170,7 @@ struct Hashmap<Key, Value, Hash, KeyEqual>::List {
 
         place->prev = node;
 
-        printBuckets();
+        // printBuckets();
         ++sz;
     }
 
@@ -223,16 +227,11 @@ Value& Hashmap<Key, Value, Hash, KeyEqual>::operator [] (const Key &key) {
             || place->hash != hash
         ) {
             place = insert_(place, key);
-            // Node *node = new Node({key, Value()}, hash);
-            // buckets_.insert(place, node);
-            // place = node;
         } 
     } else {
         place = insert_(buckets_.head, key);
-        // place = new Node({key, Value()}, hash);
-        // buckets_.push_back(place);
         array_[hash] = place;
-        printBuckets();
+        // printBuckets();
     }
     return place->kv.second;
 }
@@ -274,6 +273,30 @@ struct equal {
     }
 };
 
+std::ifstream getDataStream() {
+    std::ifstream data;
+    data.open("../test_data/cleaned_ingredients.csv");
+    return data;
+}
+
+
+template <typename Value, typename Hash, typename KeyEqual>
+void fillMapWithData(Hashmap<std::string, Value, Hash, KeyEqual> &map, std::ifstream &data) {
+    if (std::is_integral_v<Value>) {
+        std::string s;
+        size_t i = 0;
+        while (std::getline(data, s)) {
+            map[s] = ++i; 
+        }
+    } else {
+        std::string s;
+        auto it = map.begin();
+        cout << typeid(it).name() << endl;
+        s = std::string("Value type '") + typeid((*it).second).name() + std::string("' is not iterable");
+        throw std::invalid_argument(s);
+    }
+}
+
 int main() {
     // unordered_map<std::string, size_t> map{
     //     pair("one", 1),
@@ -305,36 +328,27 @@ int main() {
         map.printBuckets();
         cout << endl;
 
-        std::string s;
 
-        Hashmap<std::string, size_t> smap(2);
+        Hashmap<std::string, size_t> smap;
+        Hashmap<std::string, float> fmap;
 
-        // size_t i = 0;
-        // while (std::getline(data, s)) {
-        //     smap[s] = ++i; 
+        auto data = getDataStream();
+        fillMapWithData(smap, data);
+
+        cout << smap.buckets_.sz << endl;
+        cout << smap["P023,kalava,89.38600000000001,19.38,0.455,1.2,0.0,0.0,0.0,10.66,0.26,22.87,177.0,279.0,40.14,0.82,0.72,0.02,12.34,0.0,0.06,0.05,2.24,135.0,1194.0,0.0,0.0,0.33,0.0"];
+
+        // for (auto it : smap) {
+        //     cout << it.second <<  " ";
         // }
+
         
-        smap["sfsf"] = 2;
-        smap["sff"] = 4;
-        smap["sf"] = 4;
+        // smap["sfsf"] = 2;
+        // smap["sff"] = 4;
+        // smap["sf"] = 4;
 
-        smap.printBuckets();
-
-        // cout << map[5] << endl;
-        // cout << map[2] << endl;
+        // smap.printBuckets();
     }
-    // Hashmap<int, int>::List lst;
-    // using Node = Hashmap<int, int>::Node;
-    // Node *node1 = new Node({1, 0}, 1);
-    // Node *node2 = new Node({2, 3}, 4);
-    // lst.push_back(node1);
-    // lst.push_back(node2);
-    // cout << endl;
-    // // lst.erase(node2);
-    // // lst.erase(node1);
-    // lst.printBuckets();
-    // // lst.push_back(&Hashmap<int, int>::Node({1, 0}, 0));
-
     return 0;
 }
 
