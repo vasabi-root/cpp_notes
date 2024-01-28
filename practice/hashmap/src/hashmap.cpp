@@ -4,6 +4,7 @@
 #include <fstream>
 #include <cmath>
 #include <typeinfo>
+#include "../../bench.cpp"
 
 using std::cout;
 using std::cin;
@@ -21,6 +22,7 @@ class Hashmap {
 private:
     using value_type = std::pair<const Key, Value>;
 
+public:
     struct Node;
     struct List;
 
@@ -30,7 +32,7 @@ private:
     double load_factor_;
 
     Node* insert_( Node *place, const Key &key, const Value &val=Value());
-public:
+    
     List buckets_;
     Hashmap(size_t capacity=256, double load_factor=1.0)
     : 
@@ -39,9 +41,10 @@ public:
     { reserve(capacity); }
 
     ~Hashmap() {
-        buckets_.~List();
+        // buckets_.~List();
         delete [] array_;
     }
+
 
     Hash hashFunc;
     KeyEqual equal_to;
@@ -52,7 +55,7 @@ public:
     iterator end() { return iterator(buckets_.head); }
 
     size_t get_hash(const Key &key) { return hashFunc(key) % capacity_; }
-    double getLoadFactor(size_t cap) { return static_cast<double>(buckets_.sz) / cap; }
+    double getCurrentLoadFactor(size_t cap) { return static_cast<double>(buckets_.sz) / cap; }
 
     Value& operator [] (const Key &key);
 
@@ -60,28 +63,44 @@ public:
 
     void reserve(const size_t &count) { // count -- количество элементов, а не корзин
         size_t cap = std::ceil(count / load_factor_);
-        if (getLoadFactor(cap) < load_factor_) {
+        if (getCurrentLoadFactor(cap) < load_factor_) {
             if (capacity_ > 0) {
                 delete [] array_;
-            }
+            } 
             array_ = new Node*[cap];
             for (size_t i = 0; i < cap; ++i) {
                 array_[i] = nullptr;
             }
-
+            
             capacity_ = count;
             rehash();
         }
     }
 
+    void printNodesWithHash(size_t hash) {
+        Node *node = array_[hash];
+        while (node->hash == hash) { 
+            cout << *node << endl;
+            node = node->next;
+        }
+    }
+
+    void printNodesWithKey(Key key) {
+        Node *node = buckets_.head->next;
+        while (node != buckets_.head) { 
+            if (equal_to(node->kv.first, key)) {
+                cout << *node << endl;
+            }
+            node = node->next;
+        }
+    }
+
     void printBuckets() {
         Node *node = buckets_.head->next; 
-        size_t i = 0;
 
         while (node != buckets_.head) {
             cout << node->hash << ": [" << node->kv.first << " " << node->kv.second << "]" << endl; 
             node = node->next;
-            ++i;
         }
 
         cout << "array: ";
@@ -108,6 +127,20 @@ struct Hashmap<Key, Value, Hash, KeyEqual>::Node {
     prev(this), next(this),
     kv(kv), hash(hash) 
     {}
+
+    friend std::ostream& operator << (std::ostream &out, const Node &node) {
+        Hash getHash;
+        // out << "{ " << node.kv.first;
+        for (auto n : {*node.prev, node, *node.next}) {
+            out << " key ";
+            out << " | " << n.kv.second;
+            out << "\t | " << n.hash;
+            out << "\t | " << getHash(n.kv.first) << " }" << endl;
+        }
+        out << endl;
+
+        return out;
+    }
 };
 
 template <typename Key, typename Value, typename Hash, typename KeyEqual>
@@ -116,7 +149,7 @@ private:
     Node *node;
 public:
     // iterator tags
-    using value_type = value_type;
+    using value_type        = value_type;
     using iterator_category = std::forward_iterator_tag;
     using difference_type   = std::ptrdiff_t;
     using pointer           = value_type*;
@@ -199,9 +232,10 @@ template <typename Key, typename Value, typename Hash, typename KeyEqual>
 typename Hashmap<Key, Value, Hash, KeyEqual>::Node* Hashmap<Key, Value, Hash, KeyEqual>::insert_(Node *place, const Key &key, const Value &val) {
     Node *node = new Node({key, val}, get_hash(key));
     buckets_.insert(place, node);
-    if (getLoadFactor(capacity_) > load_factor_) {
-        cout << "REHASH" << endl;
+    if (getCurrentLoadFactor(capacity_) > load_factor_) {
+        cout << "REHASH: " << capacity_ << " -> ";
         reserve(capacity_*2);
+        cout << capacity_ << endl;
     }
     return node;
 }
@@ -221,7 +255,7 @@ Value& Hashmap<Key, Value, Hash, KeyEqual>::operator [] (const Key &key) {
         }
 
         if (
-            // есди мы дошли до конца и ключ всё ещё не совпадает
+            // если мы дошли до конца и ключ всё ещё не совпадает
             (place->next == buckets_.head && !equal_to(place->kv.first, key)) 
             // или мы уже дошли до конца корзины, то вершины нет -- надо создать новую
             || place->hash != hash
@@ -250,9 +284,9 @@ void Hashmap<Key, Value, Hash, KeyEqual>::rehash() {
         if (array_[hash] != nullptr && array_[hash] != curr) {
             curr = buckets_.erase(curr);
             buckets_.insert(array_[hash], curr);
-        } else if (array_[hash] != curr){
-            array_[hash] = curr;
         } 
+        array_[hash] = curr; // IMPORTANT !!!
+
         curr = next;
     }
 }
@@ -276,6 +310,7 @@ struct equal {
 std::ifstream getDataStream() {
     std::ifstream data;
     data.open("../test_data/cleaned_ingredients.csv");
+    // data.open("../test_data/test.csv");
     return data;
 }
 
@@ -297,50 +332,80 @@ void fillMapWithData(Hashmap<std::string, Value, Hash, KeyEqual> &map, std::ifst
     }
 }
 
+template <typename Value, typename Hash, typename KeyEqual>
+void fillMapWithData(std::unordered_map<std::string, Value, Hash, KeyEqual> &map, std::ifstream &data) {
+    if (std::is_integral_v<Value>) {
+        std::string s;
+        size_t i = 0;
+        while (std::getline(data, s)) {
+            map[s] = ++i; 
+        }
+    } else {
+        std::string s;
+        auto it = map.begin();
+        cout << typeid(it).name() << endl;
+        s = std::string("Value type '") + typeid((*it).second).name() + std::string("' is not iterable");
+        throw std::invalid_argument(s);
+    }
+}
+
 int main() {
-    // unordered_map<std::string, size_t> map{
-    //     pair("one", 1),
-    //     pair("two", 2),
-    //     pair("three", 3),
-    //     pair("four", 4)
-    // };
-    // for (auto it = map.begin(); it != map.end(); ++it) {
-    //     std::type_info(*it).name();
+    // {
+    //     unordered_map<std::string, size_t> map{
+    //         {"one", 1},
+    //         {"two", 2},
+    //         {"three", 3},
+    //         {"four", 4}
+    //     };
+
+    //     // auto it = map.begin();
+    //     unordered_map<std::string, size_t>::iterator it = map.begin();
+    //     cout << typeid(it).name() << endl;
+    //     // Hashmap<std::string, size_t>::iterator::value_type;
     // }
-    // Hashmap<std::string, size_t>::iterator::value_type;
 
-    // Node<int, int> node();
-
-    // std::ifstream data;
-    // data.open("cleaned_ingredients.csv");
-
-    
     {
-        Hashmap<int, int> map(2); // , hash<int>, equal<int>
+        Bench bench;
+        // Hashmap<int, int> map(2); // , hash<int>, equal<int>
 
-        cout << endl;
+        // cout << endl;
 
-        map[1] = 2;
-        map[2] = 4;
-        map[3] = 5;
-        map[3] = 6;
+        // map[1] = 2;
+        // map[2] = 4;
+        // map[3] = 5;
+        // map[3] = 6;
 
-        map.printBuckets();
-        cout << endl;
-
-
-        Hashmap<std::string, size_t> smap;
-        Hashmap<std::string, float> fmap;
-
-        auto data = getDataStream();
-        fillMapWithData(smap, data);
-
-        cout << smap.buckets_.sz << endl;
-        cout << smap["P023,kalava,89.38600000000001,19.38,0.455,1.2,0.0,0.0,0.0,10.66,0.26,22.87,177.0,279.0,40.14,0.82,0.72,0.02,12.34,0.0,0.06,0.05,2.24,135.0,1194.0,0.0,0.0,0.33,0.0"];
-
-        // for (auto it : smap) {
+        // map.printBuckets();
+        // cout << endl;
+        // for (auto it : map) {
         //     cout << it.second <<  " ";
         // }
+
+        Hashmap<std::string, size_t> smap(256);
+        unordered_map<std::string, size_t> sumap;
+
+        auto data = getDataStream();
+        bench.start();
+        fillMapWithData(smap, data);
+        cout << endl;
+        cout << "Hashmap : " << bench.measure() << " s" << endl;
+
+        data.close();
+        data = getDataStream();
+        bench.start();
+        fillMapWithData(sumap, data);
+        cout << "stl::map: " << bench.measure() << " s" << endl;
+
+        cout << "hashmap : " << smap["6037c3588fbc30d3db70d351,Overripe bananas big"] << endl;
+        cout << "stl::map: " << sumap["6037c3588fbc30d3db70d351,Overripe bananas big"] << endl;
+        cout << "hashmap : " << smap["S010,tiger prawns,67.876,14.24,0.134,0.66,0.0,0.0,0.0,57.9,0.84,22.94,155.0,149.0,80.77,1.02,0.39,0.08,14.69,0.0,0.01,0.04,1.28,216.0,1875.0,0.0,0.0,1.65,0.0"] << endl;
+        cout << "stl::map: " << sumap["S010,tiger prawns,67.876,14.24,0.134,0.66,0.0,0.0,0.0,57.9,0.84,22.94,155.0,149.0,80.77,1.02,0.39,0.08,14.69,0.0,0.01,0.04,1.28,216.0,1875.0,0.0,0.0,1.65,0.0"] << endl;
+
+        cout << endl;
+        cout << smap.buckets_.sz << endl;
+        cout << sumap.size() << endl;
+
+        cout << endl;
 
         
         // smap["sfsf"] = 2;
@@ -348,7 +413,7 @@ int main() {
         // smap["sf"] = 4;
 
         // smap.printBuckets();
-    }
+    } 
     return 0;
 }
 
