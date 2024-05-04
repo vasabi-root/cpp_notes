@@ -17,7 +17,9 @@ def recursive_letters(lst: [], mask, antiLst = []):
         print(''.join(mask))
         
 def main():
-    recursive_letters('асл+', '---о-', ['', 'л', 'с', '', 'а'])
+    # recursive_letters('асл+', '---о-', ['', 'л', 'с', '', 'а'])
+    # recursive_letters('угэ', 'п---а', ['', 'у', '', '', ''])
+    recursive_letters('см++', '---о-', ['мс', '', 'с', '', 'м'])
 
 if __name__ == '__main__':
     main()

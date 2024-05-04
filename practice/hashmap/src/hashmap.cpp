@@ -4,7 +4,11 @@
 #include <fstream>
 #include <cmath>
 #include <typeinfo>
+#include <type_traits>
 #include "../../bench.cpp"
+
+// cd D:\Users\vasab\Documents\GitHub\cpp_notes\practice\hashmap\src
+// g++ hashmap.cpp -std=c++20 -O0 -Wall -Wextra -g -o main; ./main
 
 using std::cout;
 using std::cin;
@@ -22,18 +26,18 @@ class Hashmap {
 private:
     using value_type = std::pair<const Key, Value>;
 
-public:
     struct Node;
     struct List;
 
     Node **array_;
+    List buckets_;
 
     size_t capacity_;
     double load_factor_;
 
     Node* insert_( Node *place, const Key &key, const Value &val=Value());
     
-    List buckets_;
+public:
     Hashmap(size_t capacity=256, double load_factor=1.0)
     : 
     capacity_(0),
@@ -45,17 +49,18 @@ public:
         delete [] array_;
     }
 
-
     Hash hashFunc;
-    KeyEqual equal_to;
+    KeyEqual equalTo;
 
     struct iterator;
 
     iterator begin() { return iterator(buckets_.head->next); }
     iterator end() { return iterator(buckets_.head); }
 
-    size_t get_hash(const Key &key) { return hashFunc(key) % capacity_; }
+    size_t getHash(const Key &key) { return hashFunc(key) % capacity_; }
     double getCurrentLoadFactor(size_t cap) { return static_cast<double>(buckets_.sz) / cap; }
+
+    size_t size() { return buckets_.sz; }
 
     Value& operator [] (const Key &key);
 
@@ -88,7 +93,7 @@ public:
     void printNodesWithKey(Key key) {
         Node *node = buckets_.head->next;
         while (node != buckets_.head) { 
-            if (equal_to(node->kv.first, key)) {
+            if (equalTo(node->kv.first, key)) {
                 cout << *node << endl;
             }
             node = node->next;
@@ -216,13 +221,10 @@ struct Hashmap<Key, Value, Hash, KeyEqual>::List {
 
     void printBuckets() {
         Node *node = head->next; 
-        size_t i = 0;
         cout << head->hash << " -> ";
         while (node != head) {
-            // cout << i << ": [" << node->kv.first << " " << node->kv.second << "][" << node->hash << "]" << endl; 
             cout << node->kv.first << " -> ";
             node = node->next;
-            ++i;
         }
         cout << head->hash << endl;
     }
@@ -230,7 +232,7 @@ struct Hashmap<Key, Value, Hash, KeyEqual>::List {
 
 template <typename Key, typename Value, typename Hash, typename KeyEqual>
 typename Hashmap<Key, Value, Hash, KeyEqual>::Node* Hashmap<Key, Value, Hash, KeyEqual>::insert_(Node *place, const Key &key, const Value &val) {
-    Node *node = new Node({key, val}, get_hash(key));
+    Node *node = new Node({key, val}, getHash(key));
     buckets_.insert(place, node);
     if (getCurrentLoadFactor(capacity_) > load_factor_) {
         cout << "REHASH: " << capacity_ << " -> ";
@@ -242,21 +244,21 @@ typename Hashmap<Key, Value, Hash, KeyEqual>::Node* Hashmap<Key, Value, Hash, Ke
 
 template <typename Key, typename Value, typename Hash, typename KeyEqual>
 Value& Hashmap<Key, Value, Hash, KeyEqual>::operator [] (const Key &key) {
-    size_t hash = get_hash(key);
+    size_t hash = getHash(key);
     Node *place = array_[hash];
 
     if (place != nullptr) {
         while (
             place->next != buckets_.head &&     // пока не дошли до конца
             place->hash == hash &&              // хэш соответствует посчитанному
-            !equal_to(place->kv.first, key)     // и ключ не совпадает с нужным
+            !equalTo(place->kv.first, key)     // и ключ не совпадает с нужным
         ) {
             place = place->next;
         }
 
         if (
             // если мы дошли до конца и ключ всё ещё не совпадает
-            (place->next == buckets_.head && !equal_to(place->kv.first, key)) 
+            (place->next == buckets_.head && !equalTo(place->kv.first, key)) 
             // или мы уже дошли до конца корзины, то вершины нет -- надо создать новую
             || place->hash != hash
         ) {
@@ -273,10 +275,9 @@ Value& Hashmap<Key, Value, Hash, KeyEqual>::operator [] (const Key &key) {
 template <typename Key, typename Value, typename Hash, typename KeyEqual>
 void Hashmap<Key, Value, Hash, KeyEqual>::rehash() {
     Node *curr = buckets_.head->next;
-    List buckets_new;
 
     while (curr != buckets_.head) {
-        size_t hash = get_hash(curr->kv.first);
+        size_t hash = getHash(curr->kv.first);
         Node *next = curr->next;
 
         curr->hash = hash;
@@ -286,7 +287,6 @@ void Hashmap<Key, Value, Hash, KeyEqual>::rehash() {
             buckets_.insert(array_[hash], curr);
         } 
         array_[hash] = curr; // IMPORTANT !!!
-
         curr = next;
     }
 }
@@ -309,7 +309,8 @@ struct equal {
 
 std::ifstream getDataStream() {
     std::ifstream data;
-    data.open("../test_data/cleaned_ingredients.csv");
+    // data.open("../test_data/cleaned_ingredients.csv");
+    data.open("../test_data/ingredient_6L.csv");
     // data.open("../test_data/test.csv");
     return data;
 }
@@ -402,7 +403,7 @@ int main() {
         cout << "stl::map: " << sumap["S010,tiger prawns,67.876,14.24,0.134,0.66,0.0,0.0,0.0,57.9,0.84,22.94,155.0,149.0,80.77,1.02,0.39,0.08,14.69,0.0,0.01,0.04,1.28,216.0,1875.0,0.0,0.0,1.65,0.0"] << endl;
 
         cout << endl;
-        cout << smap.buckets_.sz << endl;
+        cout << smap.size() << endl;
         cout << sumap.size() << endl;
 
         cout << endl;

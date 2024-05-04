@@ -1,0 +1,32 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "g++ cpp active file",
+			"command": "g++",
+			"args": [
+				"${file}",
+				"-fdiagnostics-color=always",
+				"-g",
+				"-std=c++17",
+				"-Wall",
+				"-Wextra",
+				"-o",
+				"${fileDirname}\\${fileBasenameNoExtension}.exe"
+			],
+			"options": {
+				"cwd": "C:\\MinGW\\bin"
+			},
+			"problemMatcher": {
+				"base": "$gcc",
+				"fileLocation": ["absolute"]
+			},
+			"group": {
+                "kind": "build",
+                "isDefault": true
+            },
+			"detail": "compiler: C:\\MinGW\\bin\\g++.exe"
+		}
+	]
+}
