@@ -9,7 +9,7 @@ using std::vector;
 
 struct S {
     int p;
-    S(const int &p): p(p) {}
+    S(const int &p=0): p(p) {}
     ~S() noexcept(false) {
         if (p == 0)
             throw std::runtime_error("p is zero");
@@ -34,12 +34,34 @@ void ff() {
     }
 }
 
+void test() {
+    try {
+        S s[2];// смерть пр раскрутке стека
+        // throw int(); // не получится словить что-то
+    } catch (...) {
+        cout << "\n\ncatсhed!\n";
+    }
+}
+
+struct CD {
+    CD() = default;
+};
+
+struct CD1 {
+    CD1() {}
+};
+
 
 int main() {
-    ff();
+    // ff();
     
-    // S s(0), ss(1);
-    cout << "end of a programm" << endl;
+    // // S s(0), ss(1);
+    // cout << "end of a programm" << endl;
+
+    CD cd;
+    CD1 cd1;
+
+    test();
     return 0;
 }
  

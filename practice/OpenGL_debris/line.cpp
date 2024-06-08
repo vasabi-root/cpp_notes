@@ -10,7 +10,6 @@ void wu(int x, int y, TGAImage &img) {
 
 void draw_line(int x, int y, TGAImage &img, bool smooth=true) {
 
-
 }
 
 int main(int argc, char **argv) {

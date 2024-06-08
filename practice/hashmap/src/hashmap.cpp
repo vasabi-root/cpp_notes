@@ -20,15 +20,18 @@ template <
     typename Key,                           // ключ
     typename Value,                         // значение 
     typename Hash = std::hash<Key>,         // хэш-функция
-    typename KeyEqual = std::equal_to<Key>  // функтор эквивалентности
+    typename KeyEqual = std::equal_to<Key>, // функтор эквивалентности
+    typename Allocator = std::allocator<std::pair<const Key, Value>>
 >
 class Hashmap {
 private:
     using value_type = std::pair<const Key, Value>;
+    using AllocTraits = std::allocator_traits<Allocator>;
 
     struct Node;
     struct List;
 
+    Allocator allocator;
     Node **array_;
     List buckets_;
 
@@ -38,15 +41,20 @@ private:
     Node* insert_( Node *place, const Key &key, const Value &val=Value());
     
 public:
-    Hashmap(size_t capacity=256, double load_factor=1.0)
+    Hashmap(size_t capacity=256, double load_factor=1.0,
+        Allocator allocator=Allocator())
     : 
-    capacity_(0),
-    load_factor_(load_factor) 
+    allocator(allocator),
+    capacity_(0),               // именно 0, чтобы указать на инициализацию в rehash
+    load_factor_(load_factor)
     { reserve(capacity); }
 
     ~Hashmap() {
         // buckets_.~List();
+        // Bench bench;
+        // bench.start();
         delete [] array_;
+        // cout << "Destruct of Hashmap: " << bench.measure() << " s" << endl; 
     }
 
     Hash hashFunc;
@@ -72,8 +80,8 @@ public:
             if (capacity_ > 0) {
                 delete [] array_;
             } 
-            array_ = new Node*[cap];
-            for (size_t i = 0; i < cap; ++i) {
+            array_ = new Node*[cap];           // есть смысл выделять под чары, ибо тогда не будет исключений
+            for (size_t i = 0; i < cap; ++i) { // всё равно надо занулить эту область -- нам не нужен конструктор на данном этапе
                 array_[i] = nullptr;
             }
             
@@ -120,17 +128,17 @@ public:
 };
 
 
-template <typename Key, typename Value, typename Hash, typename KeyEqual>
-struct Hashmap<Key, Value, Hash, KeyEqual>::Node {
+template <typename Key, typename Value, typename Hash, typename KeyEqual, typename Allocator>
+struct Hashmap<Key, Value, Hash, KeyEqual, Allocator>::Node {
     Node *prev;
     Node *next;
-    value_type kv;
     size_t hash;
+    value_type kv;
 
     Node (value_type kv=value_type(Key(), Value()), const size_t &hash=0)
     : 
     prev(this), next(this),
-    kv(kv), hash(hash) 
+    hash(hash), kv(kv)
     {}
 
     friend std::ostream& operator << (std::ostream &out, const Node &node) {
@@ -148,8 +156,8 @@ struct Hashmap<Key, Value, Hash, KeyEqual>::Node {
     }
 };
 
-template <typename Key, typename Value, typename Hash, typename KeyEqual>
-struct Hashmap<Key, Value, Hash, KeyEqual>::iterator {        
+template <typename Key, typename Value, typename Hash, typename KeyEqual, typename Allocator>
+struct Hashmap<Key, Value, Hash, KeyEqual, Allocator>::iterator {        
 private:
     Node *node;
 public:
@@ -162,7 +170,7 @@ public:
 
     iterator(Node *n) : node(n) {};
 
-    reference operator * () const { return static_cast<Node*>(node)->kv; }
+    reference operator * () const { node->kv; }
     // pointer* operator -> () const { return static_cast<Node*>(node)->kv; }
     iterator& operator ++ () { node = node->next; return *this; }
     iterator& operator ++ (int) { iterator tmp = *this; ++(*this); return *tmp; }
@@ -171,8 +179,8 @@ public:
     friend bool operator != (const iterator &it1, const iterator &it2) { return it1.node != it2.node; }
 };
 
-template <typename Key, typename Value, typename Hash, typename KeyEqual>
-struct Hashmap<Key, Value, Hash, KeyEqual>::List {
+template <typename Key, typename Value, typename Hash, typename KeyEqual, typename Allocator>
+struct Hashmap<Key, Value, Hash, KeyEqual, Allocator>::List {
     Node *head;
     size_t sz;
 
@@ -230,8 +238,10 @@ struct Hashmap<Key, Value, Hash, KeyEqual>::List {
     }
 };
 
-template <typename Key, typename Value, typename Hash, typename KeyEqual>
-typename Hashmap<Key, Value, Hash, KeyEqual>::Node* Hashmap<Key, Value, Hash, KeyEqual>::insert_(Node *place, const Key &key, const Value &val) {
+template <typename Key, typename Value, typename Hash, typename KeyEqual, typename Allocator>
+typename Hashmap<Key, Value, Hash, KeyEqual, Allocator>::
+Node* Hashmap<Key, Value, Hash, KeyEqual, Allocator>::
+insert_(Node *place, const Key &key, const Value &val) {
     Node *node = new Node({key, val}, getHash(key));
     buckets_.insert(place, node);
     if (getCurrentLoadFactor(capacity_) > load_factor_) {
@@ -242,8 +252,8 @@ typename Hashmap<Key, Value, Hash, KeyEqual>::Node* Hashmap<Key, Value, Hash, Ke
     return node;
 }
 
-template <typename Key, typename Value, typename Hash, typename KeyEqual>
-Value& Hashmap<Key, Value, Hash, KeyEqual>::operator [] (const Key &key) {
+template <typename Key, typename Value, typename Hash, typename KeyEqual, typename Allocator>
+Value& Hashmap<Key, Value, Hash, KeyEqual, Allocator>::operator [] (const Key &key) {
     size_t hash = getHash(key);
     Node *place = array_[hash];
 
@@ -272,8 +282,8 @@ Value& Hashmap<Key, Value, Hash, KeyEqual>::operator [] (const Key &key) {
     return place->kv.second;
 }
 
-template <typename Key, typename Value, typename Hash, typename KeyEqual>
-void Hashmap<Key, Value, Hash, KeyEqual>::rehash() {
+template <typename Key, typename Value, typename Hash, typename KeyEqual, typename Allocator>
+void Hashmap<Key, Value, Hash, KeyEqual, Allocator>::rehash() {
     Node *curr = buckets_.head->next;
 
     while (curr != buckets_.head) {
@@ -316,25 +326,11 @@ std::ifstream getDataStream() {
 }
 
 
-template <typename Value, typename Hash, typename KeyEqual>
-void fillMapWithData(Hashmap<std::string, Value, Hash, KeyEqual> &map, std::ifstream &data) {
-    if (std::is_integral_v<Value>) {
-        std::string s;
-        size_t i = 0;
-        while (std::getline(data, s)) {
-            map[s] = ++i; 
-        }
-    } else {
-        std::string s;
-        auto it = map.begin();
-        cout << typeid(it).name() << endl;
-        s = std::string("Value type '") + typeid((*it).second).name() + std::string("' is not iterable");
-        throw std::invalid_argument(s);
-    }
-}
-
-template <typename Value, typename Hash, typename KeyEqual>
-void fillMapWithData(std::unordered_map<std::string, Value, Hash, KeyEqual> &map, std::ifstream &data) {
+template <
+    template <class, class, class, class, class> typename Map, 
+    typename Value, typename Hash, typename KeyEqual, typename Allocator
+>
+void fillMapWithData(Map<std::string, Value, Hash, KeyEqual, Allocator> &map, std::ifstream &data) {
     if (std::is_integral_v<Value>) {
         std::string s;
         size_t i = 0;

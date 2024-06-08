@@ -39,6 +39,7 @@ public:
     int b = 1;
     void g() {
         cout << "G\n";
+        // prot = 1;
     }
 };
 
@@ -75,12 +76,14 @@ class Son: public Mommy {
 
 };
 
-
 int main() {
     DerivedPrivate d;
-    // d.f();
+    d.f(); // if main is friend for DerivedPrivate
     d.g();
     // d.p;
+
+    DerivedProtected dprot;
+    // dprot.f();
 
     Mommy m(1);
     m.f(0);

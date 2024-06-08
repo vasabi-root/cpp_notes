@@ -32,6 +32,10 @@ void* operator new(size_t n) {
 }
 
 int main() {
+    int a = 1;
+    int b = 2;
+    int x = std::move(b);
+    cout << x << " " << b << endl;
     int *pa = new int(1);
     delete pa;
     return 0;
