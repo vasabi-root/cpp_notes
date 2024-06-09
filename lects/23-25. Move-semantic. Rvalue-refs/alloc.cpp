@@ -17,7 +17,7 @@ struct Alloc {
 
     template <typename... Args>
     void construct(T* p, Args& ...args) {
-        new(p) T(args...) ;
+        new(p) T(std::forward<Args>(args)...);
     }
 
     void destroy(T* p) {
