@@ -36,16 +36,24 @@ private:
     size_t cap;
 
     struct BitReference {
-        uint8_t &byte;
-        uint8_t bit;
+        uint8_t *byte;
+        uint8_t mask;
+        
+        BitReference (): byte(nullptr), mask(0) {}
+        BitReference (uint8_t& byte, uint8_t bit): byte(&byte), mask(1<<bit) {}
 
         operator bool() const {
-            return byte & (1 << bit);
+            return *byte & mask;
         }
 
         BitReference& operator = (const BitReference &) = default;
-        BitReference& operator = (const int &) {
-            byte 
+        BitReference& operator = (int num) {
+            if (num) {
+                *byte |= mask;
+            } else {
+                *byte &= ~mask;
+            }
+            return *this;
         }
     };
 
@@ -55,7 +63,7 @@ public:
     }
 
     BitReference operator [] (const size_t &i) {
-        return {*(arr + i/8), i % 8};
+        return {arr[i/8], static_cast<uint8_t>(i % 8)};
     }
 
 

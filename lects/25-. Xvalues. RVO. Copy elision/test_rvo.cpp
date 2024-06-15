@@ -87,20 +87,22 @@ RvoVal operator + (RvoVal a, const RvoVal& b) { // RVO
     return a += b;
 }
 
-
+double first_speed;
 template <typename T>
-void test_sum(size_t n=300'000'000) {
+void test_sum(size_t n=300'000'000, bool first_flag=false) {
     Bench bench;
     cout << endl;
     bench.start();
     for (size_t i=0; i < n; ++i) {
         T a = T(1) + T(2);
     }
-    cout << typeid(T).name() << ": " << double(n) / bench.measure() << endl;
+    double speed = double(n) / bench.measure();
+    if (first_flag) {first_speed = speed;}
+    cout << typeid(T).name() << ": " << speed << " " << speed / first_speed << endl;
 }
 
 int main() {
-    test_sum<RvoRef>();
+    test_sum<RvoRef>(300000000,true);
     test_sum<BadRvoRef>();
     test_sum<MoveRef>();
     test_sum<MoveVal>();
