@@ -88,5 +88,9 @@ int main() {
     Mommy m(1);
     m.f(0);
 
+    Granny g = m;
+    Granny& rg = m;
+    // Mommy &m = dynamic_cast<Mommy&>(g); // only for polymorphic classes
+
     return 0;
 }

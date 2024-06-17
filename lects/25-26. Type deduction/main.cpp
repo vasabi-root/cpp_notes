@@ -15,7 +15,7 @@ int main() {
     int a = 0;
     decltype(a) b = 2; // CT
     // decltype(++a) c; // CE -- [++a] == int&, необходимо проинициализировать ссылку
-    decltype((a)) c = b; // int&
+    decltype((a)) c = b; // int& 
 
     return 0;
 }
