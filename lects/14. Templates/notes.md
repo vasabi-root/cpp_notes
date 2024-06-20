@@ -71,14 +71,33 @@ void f(T a, U b) {
     cout << "1\n";
 }
 
-template <>
-void f(int a, int b) {
-    cout << "2\n";
+template <> // специализация TU
+void f(int a, int b) { // никогда не вызовется, если есть 
+                       // перегрузка для TT
+    cout << " 2\n";
 }
 
-template <typename T>
-void f(T a, T b) {
+// перегрузка
+template <typename T = double> // работает и без double по умолчанию
+void f(T a, T b=1.5) {
     cout << "3\n";
+}
+
+template <> // специализация TT
+void f(int a, int b) { // b = int(1.5) по умолчанию!
+    cout << b << " 4\n";
+}
+
+void f(int a, int b) { // перегрузка
+    cout << "5\n";
+}
+
+int main() {
+    f(0, 1); // 5
+    f(1); //4
+    // если закомментить f5
+    f(9, 1); // 4
+
 }
 ```
 Можно определить тип в шаблоне по умолчанию: `template <typename T = int>`
@@ -108,3 +127,5 @@ struct  Stack {
     Container c;
 };
 ```
+# Вычисления на шаблонах
+

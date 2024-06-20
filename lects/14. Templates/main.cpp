@@ -17,7 +17,7 @@ void f(T a, T b) {
     cout << "2\n";
 }
 
-void f(int a, int b) {
+void f(int a, int b) { 
     cout << "3\n";
 }
 

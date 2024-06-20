@@ -45,11 +45,6 @@ void g() {
     // T != int: A<1, 2> a;
 }
 
-
-
-
-
-
 int main() {
     while (0)
     {
