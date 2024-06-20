@@ -23,6 +23,16 @@ public:
     ~unique_ptr() { Deleter()(ptr_); }
 };
 
+template <typename T>
+class enable_shared_from_this {
+    shared_ptr<T> sptr__;
+
+public:
+    shared_ptr<T> shared_from_this() {
+        return sptr__;
+    }
+};
+
 
 template <typename T, typename Deleter=std::default_delete<T>>
 class shared_ptr {
@@ -76,9 +86,19 @@ shared_ptr<T> make_shared(Args&&... args) {
     return shared_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+struct S: enable_shared_from_this<S> { 
+    int a, b, c; 
+    S(int a, int b, int c): enable_shared_from_this(), a(a), b(b), c(c) {
+
+    }
+};
+
 }
 
+
 int main() {
-    auto sptr1 = memory::make_shared<int>(5);
-    auto sptr2 = memory::make_shared<std::string>(10, 'A');
+    // auto sptr1 = memory::make_shared<int>(5);
+    // auto sptr2 = memory::make_shared<std::string>(10, 'A');
+    cout << sizeof(std::enable_shared_from_this<memory::S>) << endl;
+    cout << sizeof(std::shared_ptr<memory::S>) << endl;
 }

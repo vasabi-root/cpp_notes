@@ -38,7 +38,28 @@ shared_ptr<T> make_shared(Args&&... args) {
     return shared_ptr<T>(new T(std::forward<Args>(args)...));
 }
 ```
-Лучше обернуть `T` и `size_t` в структуру, и оперировать с ней -- без костылей и с выравниванием.
+Лучше обернуть `T` и `size_t` в структуру, и оперировать с ней -- без костылей и с выравниванием. Но тогда придётся реализовывать различные сценарии при формировании ш_птр от указателя и от цб. Ибо память будет аллоцирована по-разному. Доп проблемы по поводу аллокатора [тут](https://youtu.be/9ZSBOfTd-sc?t=3943)
+
+Также есть смысл делать наследование в виде:
+```c++
+struct BaseControlBlock {
+  size_t shared_count;
+  size_t weak_count;
+};
+
+template <typename Deleter, typename Alloc>
+struct ControlBlock {
+  Deleter del;
+  Alloc alloc;
+}
+
+template <typename T, typename Alloc> // Deleter не нужен, раз мы сами вызываем new
+struct ControlBlockMakeShared: BaseControlBlock {
+  T object;
+  Alloc alloc;
+};
+
+```
 
 Есть ещё одна проблема -- циклические ссылки в `T`:
 ```c++
@@ -56,7 +77,7 @@ child->prev = root;
 ### `weak_ptr`
 Просто наблюдает. Допускает уничтожение объекта.
 
-Фишка в том, чтобы одну из "сторон" указателей сделать `weak_ptr` (например, все next -- это weak_ptr). Тогда нужно ещё счётчик вик_птр'ов. При этом вызов деструктора должен происходить в вик, а деаллокация -- в шэйрд.
+Фишка в том, чтобы одну из "сторон" указателей сделать `weak_ptr` (например, все next -- это weak_ptr). Тогда нужно ещё счётчик вик_птр'ов. При этом вызов деструктора должен происходить в вик, а деаллокация -- в шэйрд. Когда `вик_каунтер` опустился до нуля, надо вызвать деструктор, а когда обнулился `шейрд_каунтер` -- деаллоцировать.
 
 ## `enable_shared_from_this`
 Иногда хочеца такого:
@@ -77,10 +98,92 @@ struct Node: public std::enable_shared_from_this {
   T object; 
 
   shared_ptr<Node<T>> get_shared() {
-    return shared_from_this; // OK
+    return shared_from_this(); // OK
   }
 }
 ```
-Доп проблемы по поводу аллокатора [тут](https://youtu.be/9ZSBOfTd-sc?t=3943)
+Как реализовать `enable_shared_from_this`? 
+```c++
+template <typename T>
+struct enable_shared_from_this {
+  weak_ptr<T> wptr__;
+
+  shared_ptr<T> shared_from_this() {
+    if (wptr__.ptr == nullptr)
+      throw 1;
+    return wptr__.lock();
+  }
+}
+
+template <typename T>
+class shared_ptr {
+  ...
+public:
+  shared_ptr(T* ptr): ptr_(ptr), count_(new size_t) {
+    *count_ = 1;
+    if constexpr (std::is_base_of_v<enable_shared_from_this<T>, T>) {
+      wptr__ = *this;
+    }
+  }
+};
+```
+Дальше больше -- shared_ptr не имеет полей аллокатора и делитера!!! А ещё, как присваивать два ш_птр с разными аллокаторами/делитерами?
+
+# Type erasure
+Язык C++ статически типизирован. Правда?
+```c++
+#include <any>
+#include <vector>
+
+int main {
+  std::any a;
+  a = 0;
+  a = 0.3;
+  a = "sdfsdf";
+  a = std::vector<int>(3);
+}
+```
+И всё же да, ведь если мы захотим обратиться к хранимому элементу, то придётся делать каст:
+```c++
+  a = 0.5;
+  cout << std::any_cast<double&>(a) << endl;
+```
+Как такое реализовать? Нам нужно нечто, что будет менять своё поведение в рантайме. Это похоже на виртуальные функции, но только относительно полей:
+```c++
+struct any {
+  struct Base {
+    virtual Base* getCopy() const {}
+    virtual ~Base() {} // необязательно, но раз есть одна виртуальная функция
+                       // то лучше всё же сделать деструктор виртуальным
+  };
+
+  template <typename T>
+  struct Derived: Base {
+    T object;
+    Derived(const T& object): object(object) {}
+    Derived(T&& object): object(std::move(object)) {}
+    Base* getCopy() const override { return new Derived(object); }
+  }
+
+  Base* ptr;
+
+  template<typename T>
+  any(const T& obj): ptr(new Derived(obj)) {}
+  any(const any& other): ptr(other.getCopy())  {}
+  ~any() { delete ptr; }
+
+  template <typename T>
+  friend T any_cast(const &any a) {
+    auto d = dynamic_cast<Derived<T>*>(a.ptr);
+    if (!d) throw 1;
+    return d.object;
+  }
+};
+
+
+
+```
+
+
 
 [про 301 балл порога в вузах](https://youtu.be/xzK6Zx0TZx8?t=2790)
