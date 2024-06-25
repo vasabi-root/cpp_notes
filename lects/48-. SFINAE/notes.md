@@ -187,3 +187,73 @@ false_type is_poly_f(...); // C-style multyargs
 template <typename T>
 struct is_polymorphic: decltype(is_poly_f<T>(nullptr)) {};
 ```
+
+## has_method
+Указатель на метод нельзя -- только если мы хотим убедиться, что класс имеет метод с такой сигнатурой, но не для того, чтоб понят, есть ли метод с таким-то именем! Делаем через `declval<T>()`. Также тут юзается `comma-trick`, чтобы тип аргумента функции бвл корректен.
+```c++
+template <typename T>
+T&& declval(); // универсальная ссылка важна! иначе не будет работать для rvalue-ссылок
+
+template<typename T, typename... Args>
+true_type has_construct_f( decltype(declval<T>().construct(declval<Args>()...), nullptr ));
+
+template <typename...>
+false_type has_construct_f(...);
+
+template <typename T, typename... Args>
+struct has_construct: decltype(has_construct_f<T, Args...>(nullptr)) {};
+
+struct A;
+struct S {
+    int construct(int, float);
+    void construct(int, int, int);
+    void construct(A&&); // declval должен уметь и такое обрабатывать
+};
+```
+Важно сказать, что `A` -- неполный тип (incomplete type) -- тот, у которого нет определения. Работать с неполным типом можно только через &&.
+
+## has_move_if_noexcept
+```c++
+template <typename T>
+true_type has_move_if_noexcept_f(my2::enable_if_t<noexcept(T(my4::declval<T>())), decltype(nullptr)>);
+
+template <typename...>
+false_type has_move_if_noexcept_f(...);
+```
+
+## is_base_of
+Самая е*анутая
+```c++
+template <typename B>
+true_type cast_trick(const B*);
+
+template <typename ...>
+false_type cast_trick(...);
+
+template <typename B, typename D>
+auto is_base_of_f(int) -> decltype(cast_trick<B>(my4::declval<D*>())); 
+
+template <typename, typename>
+auto is_base_of_f(...) -> true_type; // private & ambiguous
+
+template <typename B, typename D>
+struct is_base_of : std::conjunction<
+  std::is_class<B>, std::is_class<D>,
+  decltype(is_base_of_f<B, D>(0))
+> {};
+```
+Притом наличие хотя б одного аргумента в `is_base_of(int)` обязательно, ибо иначе обе функции равнозначны и получаем `ambiguous call`
+
+
+## common_types
+Общий тип из `Types...`. 
+
+Вообще, у нас уже есть механизм, дающий нам общий тип для двух типов -- это тернарный оператор. От него и пляшем.
+
+```c++
+template <typename T, typename U>
+struct common_type<T, U>: std::type_identity<
+  decltype(true ? my4::declval<T>() : my4::declval<U>())
+> {};
+```
+

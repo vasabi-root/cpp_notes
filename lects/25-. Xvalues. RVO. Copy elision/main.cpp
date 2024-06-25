@@ -39,7 +39,10 @@ S operator + (const S& a, const S& b) { // named RVO
 // -------------------------------------------------------------
 S g(int n) {
     // S s = S(n) += 1; // 2s 1sc
-    return S(n) + 1;    // 3s 1sc
+    // return s;
+    // return S(n);
+    return S(n) + 1;    // 2s 1sc
+    // return S(n) += 1;    // 2s 1sc
 }
 
 template<typename T>
@@ -67,8 +70,8 @@ int main() {
     S s = S(S(S(S(S(S(2)))))); // 1s
 
     cout << endl;
-    S sg = g(10); // 4
-    // g(10);        // 4
+    S sg = g(10); // 3
+    g(10);        // 3
 
 
     cout << endl;
@@ -79,5 +82,7 @@ int main() {
 
     cout << endl;
     S ss = S(1) + S(1);
+    cout << endl;
+    S sss = 1+1;
     return 0;
 }

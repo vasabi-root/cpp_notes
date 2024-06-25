@@ -3,3 +3,4 @@ literature/
 *.exe
 .vscode
 .venv
+*/test_dome/notes/
