@@ -4,3 +4,4 @@ literature/
 .vscode
 .venv
 */test_dome/notes/
+*build/

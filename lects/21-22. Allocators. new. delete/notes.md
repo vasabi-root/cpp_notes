@@ -41,10 +41,10 @@ using AllocTraits = std::allocator_traits<Alloc>
 container
  |
 \|/
-allocator
+allocator_traits
  |
 \|/
-allocator_traits
+allocator
  |
 \|/
 new, delete
