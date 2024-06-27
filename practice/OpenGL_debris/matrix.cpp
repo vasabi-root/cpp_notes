@@ -35,23 +35,16 @@ public:
         other.cells_ = nullptr;
     }
 
-    Matrix& operator = (Matrix other) {
-        std::swap(cells_, other.cells_);
-        other.cells_ = nullptr;
+    Matrix& operator = (const Matrix &other) {
+        Matrix copy(other);
+        std::swap(cells_, copy.cells_);
+        copy.cells_ = nullptr;
         return *this;
     }
 
     Matrix& operator = (Matrix&& other) { 
         std::swap(cells_, other.cells_);
         other.cells_ = nullptr;
-        // cells_ = Alloc::allocate(alloc_, M*N);
-        // for (size_t i = 0; i < size_; ++i) {
-        //     Alloc::construct(alloc_, cells_+i, std::move(other.cells_[i]));
-        //     Alloc::destroy(alloc_, other.cells_+i);
-        // }
-        // Alloc::deallocate(other.alloc_, other.cells_, other.size_);
-        // other.cells_ = nullptr;
-
         return *this;
     }
 
@@ -59,11 +52,24 @@ public:
         for (size_t i = 0; i < size_; ++i) {
             cells_[i] += other.cells_[i];
         }
+        return *this;
     }
 
-    Matrix operator + (const Matrix& other) {
-        Matrix copy(*this);
+    template <typename U>
+    Matrix& operator += (U other) {
+        for (size_t i = 0; i < size_; ++i) {
+            cells_[i] += other;
+        }
+        return *this;
     }
+
+    template <typename U>
+    Matrix operator + (const U& other) {
+        Matrix copy(*this);
+        copy += other;
+        return copy; // rvo
+    }
+    
 
     T* operator [] (size_t i) { return cells_+i*N; }
     const T* operator [] (size_t i) const { return cells_+i*N; }
@@ -101,16 +107,29 @@ template <
 >
 using MatrixInt = Matrix<M, N, int, Alloc_>;
 
+template <size_t M,  size_t N, typename T, typename Alloc_ = std::allocator<int>, typename U>
+Matrix<M, N, T, Alloc_> operator + (const U& a, Matrix<M, N, T, Alloc_> b) { b += a; return b; }
+
 int main(int argc, char** argv) {
     MatrixInt<2, 3> mat1, mat2;
     MatrixInt<2, 3> mat3(mat1);
     MatrixInt<2, 3> mat4(std::move(mat2));
-    mat2 = mat1;
+    Matrix<2, 3, double> mat;
+    mat += 2.2;
+    cout << mat << endl;
+    mat += mat;
+    mat + mat;         // 1 copy
+    cout << mat << endl;
+    mat = 1 + mat;     // 1 copy
+    cout << mat << endl;
+    mat2 = mat1;       // 1 copy
+    mat = 0.1;         // 1 copy
+    cout << mat << endl;
+
     cout << endl;
     cout << endl;
     cout << endl;
     cout << mat2 << endl;
     mat2[0][1] = 100;
     cout << mat2 << endl;
-    
 }
