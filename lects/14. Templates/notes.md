@@ -127,5 +127,6 @@ struct  Stack {
     Container c;
 };
 ```
-# Вычисления на шаблонах
+
+[Полезное](https://www.reddit.com/r/cpp/comments/1b7jkxd/why_cant_partial_specializations_be_friends/) про дружественные шаблонные классы себя
 

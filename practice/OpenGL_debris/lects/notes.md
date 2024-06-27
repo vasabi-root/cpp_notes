@@ -11,6 +11,4 @@ CMake:
 - [Два](https://neerc.ifmo.ru/wiki/index.php?title=CMake_Tutorial)
 - [Три](https://eax.me/cmake/)
 
-
-
-"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command g++ D:\Users\vasab\Documents\GitHub\cpp_notes\practice\OpenGL_debris\matrix.cpp -fdiagnostics-color=always -g -std=c++17 -Wall -Wextra -o D:\Users\vasab\Documents\GitHub\cpp_notes\practice\OpenGL_debris\matrix.exe" terminated with exit code: 1.
+[Про друзей в шаблонных классах](https://ledas.com/post/857-how-to-hack-c-with-templates-and-friends/)
