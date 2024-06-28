@@ -1,19 +1,23 @@
+#ifndef __PH_LINE_H__
+#define __PH_LINE_H__
+
 #include <iostream>
 #include "tgaimage.h"
 #include "model.h"
 #include "config.h"
 #include <windows.h>
-#include "../bench.cpp"
+#include "../bench.h"
 
 // #include <iostream>
 // #include "misc/tgaimage.cpp"
+// #include "misc/model.cpp"
 // #include "config.h"
 // #include <windows.h>
-// #include "../bench.cpp"
+// #include "../bench.h"
 
 // cmake -G "MinGW Makefiles" ..
 
-const char* imgName = "output.tga";
+const char* imgName = "output.ph";
 
 void parameter_ptrs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img) {
     float dt;
@@ -196,7 +200,7 @@ void play_line(drawing_func* func) {
         // img.clear();
         x1 = x0 + r*std::cos(t);
         y1 = y0 + r*std::sin(t);
-        func(x0, y0, x1, y1, tga::red, img);
+        func(x0, y0, x1, y1, ph::red, img);
         img.write_tga_file(imgName);
         Sleep(50);
     }
@@ -204,10 +208,10 @@ void play_line(drawing_func* func) {
 
 void test_drawing_func(drawing_func* func, TGAImage &img, int iterNum) {
     for (auto i = 0; i < iterNum; ++i) {
-        func(100, 25, 75, 100, tga::red, img);
-        func(75, 100, 100, 175, tga::red, img);
-        func(100, 175, 125, 100, tga::red, img);
-        func(125, 100, 100, 25, tga::red, img);
+        func(100, 25, 75, 100, ph::red, img);
+        func(75, 100, 100, 175, ph::red, img);
+        func(100, 175, 125, 100, ph::red, img);
+        func(125, 100, 100, 25, ph::red, img);
     }
 }
 
@@ -226,7 +230,7 @@ void test_model_obj(drawing_func* func, const char* obj_file_name) {
             int y0 = (v0.y+1.)*height/2.;
             int x1 = (v1.x+1.)*width/2.;
             int y1 = (v1.y+1.)*height/2.;
-            func(x0, y0, x1, y1, tga::white, img);
+            func(x0, y0, x1, y1, ph::white, img);
         }
     }
     img.flip_vertically();
@@ -265,9 +269,4 @@ void test_draw_line() {
     img.write_tga_file(imgName);
 }
 
-int main(int argc, char **argv) {
-    play_line(&bresenham_ptrs);
-    // test_draw_line();
-    // test_model_obj(&bresenham_ptrs, "../obj/african_head.obj");
-    return 0;
-}
+#endif

@@ -1,7 +1,10 @@
-#include "misc/tgaimage.h"
+#ifndef __PH_CONFIG_H__
+#define __PH_CONFIG_H__
+
+#include "tgaimage.h"
 #include <random>
 
-namespace tga
+namespace ph
 {   
     const auto white  = TGAColor(255, 255, 255, 255);
     const auto black  = TGAColor(0,   0,   0,   0);
@@ -17,4 +20,6 @@ namespace tga
             255
         ));
     }
-} // namespace tga
+} // namespace ph
+
+#endif

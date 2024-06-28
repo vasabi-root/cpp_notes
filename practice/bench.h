@@ -1,3 +1,6 @@
+#ifndef __PH_BENCH_H__
+#define __PH_BENCH_H__
+
 #include <iostream>
 #include <cmath>
 #include <typeinfo>
@@ -29,3 +32,5 @@ public:
         return diff.count();
     }
 };
+
+#endif
