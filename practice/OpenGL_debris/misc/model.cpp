@@ -1,3 +1,6 @@
+#ifndef __MODEL__CPP
+#define __MODEL__CPP
+
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -52,3 +55,4 @@ Vec3f Model::vert(int i) {
     return verts_[i];
 }
 
+#endif

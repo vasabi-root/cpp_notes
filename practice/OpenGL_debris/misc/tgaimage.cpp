@@ -1,3 +1,6 @@
+#ifndef __TGAIMAGE_CPP__
+#define __TGAIMAGE_CPP__
+
 #include <iostream>
 #include <fstream>
 #include <string.h>
@@ -350,3 +353,4 @@ bool TGAImage::scale(int w, int h) {
 	return true;
 }
 
+#endif

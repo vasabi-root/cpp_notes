@@ -1,19 +1,21 @@
 #ifndef __PH_LINE_H__
 #define __PH_LINE_H__
 
+#ifdef CMAKE
 #include <iostream>
 #include "tgaimage.h"
 #include "model.h"
 #include "config.h"
 #include <windows.h>
 #include "../bench.h"
-
-// #include <iostream>
-// #include "misc/tgaimage.cpp"
-// #include "misc/model.cpp"
-// #include "config.h"
-// #include <windows.h>
-// #include "../bench.h"
+#else
+#include <iostream>
+#include "misc/tgaimage.cpp"
+#include "misc/model.cpp"
+#include "config.h"
+#include <windows.h>
+#include "../bench.h"
+#endif
 
 // cmake -G "MinGW Makefiles" ..
 

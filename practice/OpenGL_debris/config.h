@@ -1,8 +1,13 @@
 #ifndef __PH_CONFIG_H__
 #define __PH_CONFIG_H__
 
+#ifdef CMAKE
 #include "tgaimage.h"
 #include <random>
+#else
+#include "misc/tgaimage.cpp"
+#include <random>
+#endif
 
 namespace ph
 {   

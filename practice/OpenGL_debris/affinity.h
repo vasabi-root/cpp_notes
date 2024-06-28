@@ -1,11 +1,19 @@
 #ifndef __PH_AFFINITY_H__
 #define __PH_AFFINITY_H__
 
+#ifdef CMAKE
 #include <iostream>
 #include "tgaimage.h"
 #include "line.h"
 #include "matrix.h"
 #include <vector>
+#else
+#include <iostream>
+#include "misc/tgaimage.cpp"
+#include "line.h"
+#include "matrix.h"
+#include <vector>
+#endif
 
 using std::cin;
 using std::cout;
@@ -36,6 +44,10 @@ void test_affinity() {
         {1, 0, 1},
         {1, 1, 1},
     };
+
+
+
+    auto rotate_mat = Matrix<>::rotate3dZ(300/3.14);
 
     for (auto v : cube) {
         cout << v;

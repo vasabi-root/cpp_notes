@@ -1,16 +1,21 @@
-// #include <iostream>
-// #include "tgaimage.h"
-// #include "model.h"
-// #include "config.h"
-// #include <windows.h>
-// #include "../bench.h"
+#define CMAKE
 
+#ifdef CMAKE
+#include <iostream>
+#include "tgaimage.h"
+#include "model.h"
+#include "config.h"
+#include <windows.h>
+#include "../bench.h"
+
+#else
 #include <iostream>
 #include "misc/tgaimage.cpp"
 #include "misc/model.cpp"
 #include "config.h"
 #include <windows.h>
 #include "../bench.h"
+#endif
 
 #include "line.h"
 #include "matrix.h"
