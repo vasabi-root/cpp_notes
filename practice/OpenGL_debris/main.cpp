@@ -37,8 +37,7 @@ void test_matrix() {
 int main(int argc, char **argv) {
     cout << endl; 
     Sleep(1000);
-    test_matrix();
-    test_affinity();
+    test_append();
     
     return 0;
 }

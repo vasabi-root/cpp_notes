@@ -21,6 +21,14 @@ concept Plusable = requires (T t, U u)  { t += u; };
 template <typename T, typename U> 
 concept Multiplyable = requires (T t, U u)  { t *= u; };
 
+template <typename T>
+void is_initializer_list_f(std::initializer_list<T>);
+template <typename T>
+std::false_type is_initializer_list_f(T);
+
+template <typename T>
+struct is_initializer_list: decltype(is_initializer_list_f(std::declval<T>())) {};
+
 // T requires to have T(), T(1)
 // TODO: add append() method (get rid of template M_ N_)
 //       toScreen() method 
@@ -39,30 +47,36 @@ public:
 
     template <typename U, typename UAlloc_> 
     requires (std::__is_allocator<UAlloc_>::value)
-    friend class Matrix ;
+    friend class Matrix;
 
     template <typename... Args>
-    Matrix(size_t M, size_t N, const Args&... args): cells_(Alloc::allocate(alloc_, M*N)), M_(M), N_(N), size_(M*N)  {
+    Matrix(size_t M, size_t N, const Args&... args): 
+    cells_(Alloc::allocate(alloc_, 2*M*N)), 
+    M_(M), N_(N), size_(M*N), capacity_(2*size_)  {
         for (size_t i = 0; i < size_; ++i) {
             Alloc::construct(alloc_, cells_+i, args...);
         }
     }
 
     Matrix (std::initializer_list<std::initializer_list<T>> list): 
-    cells_(Alloc::allocate(alloc_, list.size()*list.begin()->size())), 
-    M_(list.begin()), N_(list.begin()->size()), size_(list.size()*list.begin()->size())  {
+    cells_( Alloc::allocate(alloc_, 2*list.size()*list.begin()->size())), 
+    M_(list.size()), N_(list.begin()->size()), size_(M_*N_), capacity_(2*size_)
+    {
         for (size_t i = 0; i < M_; ++i) {
             auto inner = *(list.begin()+i);
             for (size_t j = 0; j < N_; ++j) {
                 Alloc::construct(alloc_, cells_+i*N_+j, 1);
                 if (i < list.size()) {
-                    cells_[i] = *(inner.begin()+i);
+                    cells_[i*N_ + j] = *(inner.begin()+j);
                 }
             }
         }
     }
 
-    Matrix (std::initializer_list<T> list): cells_(Alloc::allocate(alloc_, list.size())), M_(1), N_(list.size()), size_(list.size())  {
+    // template <typename U = is_initializer_list<T>::value>
+    Matrix (std::initializer_list<T> list): 
+    cells_(Alloc::allocate(alloc_, 2*list.size())), 
+    M_(1), N_(list.size()), size_(M_*N_), capacity_(2*size_) {
         for (size_t i = 0; i < size_; ++i) {
             Alloc::construct(alloc_, cells_+i, 1);
             if (i < list.size()) {
@@ -71,38 +85,56 @@ public:
         }
     }
 
-    Matrix(const Matrix& other): cells_(Alloc::allocate(alloc_, other.M_*other.N_)), M_(other.M_), N_(other.N_), size_(other.M_*other.N_)  {
+    Matrix(const Matrix& other):
+    cells_(Alloc::allocate(alloc_, other.capacity_)), 
+    M_(other.M_), N_(other.N_), size_(other.M_*other.N_), capacity_(other.capacity_)  {
         for (size_t i = 0; i < size_; ++i) {
             Alloc::construct(alloc_, cells_+i, other.cells_[i]);
         }
     }
 
-    Matrix(Matrix&& other): M_(other.M_), N_(other.N_), size_(other.M_*other.N_)  { //: cells_(Alloc::allocate(alloc_, M_*N_)) {
+    Matrix(Matrix&& other) noexcept: 
+    M_(other.M_), N_(other.N_), size_(other.M_*other.N_), capacity_(other.capacity_)  { //: cells_(Alloc::allocate(alloc_, M_*N_))
         std::swap(cells_, other.cells_);
         other.cells_ = nullptr;
     }
 
-    Matrix& operator = (const Matrix &other) {
+    void destroy_cells() {
+        for (size_t i = 0; i < size_; ++i) { 
+            Alloc::destroy(alloc_, cells_+i);
+        }
+        Alloc::deallocate(alloc_, cells_, size_);
+    }
+
+    ~Matrix() { 
+        if (cells_) {
+            destroy_cells();
+        }
+    }
+
+    Matrix& operator = (const Matrix &other) noexcept {
         Matrix copy(other);
         M_ = copy.M_;
         N_ = copy.N_;
         size_ = copy.size_;
+        capacity_ = copy.capacity_;
         std::swap(cells_, copy.cells_);
         copy.cells_ = nullptr;
         return *this;
     }
 
-    Matrix& operator = (Matrix&& other) { 
+    Matrix& operator = (Matrix&& other) noexcept { 
         M_ = other.M_;
         N_ = other.N_;
         size_ = other.size_;
+        capacity_ = other.capacity_;
         std::swap(cells_, other.cells_);
         other.cells_ = nullptr;
         return *this;
     }
 
     template <typename U> requires Assignable<T, U>
-    Matrix& operator = (U num) { 
+    Matrix& operator = (U num)  { 
         for (size_t i = 0; i < size_; ++i) {
             cells_[i] = num;
         }
@@ -119,19 +151,19 @@ public:
     }
 
     template <typename U> requires Plusable<T, U>
-    Matrix& operator += (U other) {
+    Matrix& operator += (U num) {
         for (size_t i = 0; i < size_; ++i) {
-            cells_[i] += other;
+            cells_[i] += num;
         }
         return *this;
     }
 
-    template <typename U>
-    Matrix operator + (const U& num) {
-        Matrix copy(*this);
-        copy += num;
-        return copy; // rvo + copy elision
-    }
+    // template <typename U>
+    // Matrix operator + (const U& num) const {
+    //     Matrix copy(*this);
+    //     copy += num;
+    //     return copy; // rvo + copy elision
+    // }
 
     template <typename U> requires Multiplyable<T, U>
     Matrix& operator *= (U num) {
@@ -148,7 +180,7 @@ public:
     }
 
     template <typename U, typename UAlloc> requires Multiplyable<T, U>
-    Matrix operator * (const Matrix<U, UAlloc>& other) {
+    Matrix operator * (const Matrix<U, UAlloc>& other) const {
         assert((N_ == other.M_));
         size_t K = other.N_;
         Matrix result(M_, K);
@@ -164,7 +196,7 @@ public:
     }
 
     template <typename U> requires Multiplyable<T, U>
-    Matrix operator * (U num) {
+    Matrix operator * (U num) const {
         Matrix copy(*this);
         copy *= num;
         return copy; // rvo + copy elision
@@ -174,13 +206,52 @@ public:
     T* operator [] (size_t i) { return cells_+i*N_; }
     const T* operator [] (size_t i) const { return cells_+i*N_; }
 
-    ~Matrix() { 
-        if (cells_) {
-            for (size_t i = 0; i < size_; ++i) { 
-                Alloc::destroy(alloc_, cells_+i);
+    Matrix transpose() const noexcept {
+        Matrix mat(N_, M_);
+        for (size_t i = 0; i < M_; ++i) {
+            for (size_t j = 0; j < N_; ++j) {
+                mat.cells_[j*M_+i] = cells_[i*N_+j];
             }
-            Alloc::deallocate(alloc_, cells_, size_);
         }
+        return mat;
+    }
+
+    void resize(size_t new_size) {
+        size_ = new_size;
+        if (capacity_ >= new_size) return;
+        size_t new_capacity = 2*new_size;
+
+        T* new_cells = Alloc::allocate(alloc_, new_capacity);
+
+        for (size_t i = 0; i < size_; ++i) {
+            Alloc::construct(alloc_, new_cells+i, cells_[i]);
+        }
+        destroy_cells();
+
+        cells_ = new_cells;
+        capacity_ = new_capacity;
+    }
+
+    void appendRow(const Matrix& other) {
+        assert(N_ == other.N_);
+        size_t old_size = size_;
+        size_t other_size = other.size_;
+        resize(old_size + other.size_);
+
+        for (size_t i = old_size; i < old_size+other_size; ++i) {
+            Alloc::construct(alloc_, cells_+i, other.cells_[i-old_size]);
+        }
+        M_ += other.M_;
+    }
+
+    void appendCol(const Matrix& other) {
+        assert(M_ == other.M_);
+
+        resize(size_ + other.size_);
+
+        *this = transpose();
+        appendRow(other.transpose());
+        *this = transpose();
     }
 
     #if N_ == 1 || M_ == 1
@@ -209,12 +280,12 @@ public:
         Matrix mat = Matrix::eye(dimensions, dimensions);
         double scale = std::cos(angle);
         double shift = std::sin(angle);
-        if (ax1 > ax2 || ax1 == 0 && ax2 == mat.M_-1) std::swap(ax1, ax2);
+        if (ax1 > ax2 || (ax1 == 0 && ax2 == mat.M_-1)) std::swap(ax1, ax2);
 
         mat[ax1][ax1] = scale;
         mat[ax2][ax2] = scale;
-        mat[ax1][ax2] = -shift;
-        mat[ax2][ax1] = shift;
+        mat[ax1][ax2] = shift;
+        mat[ax2][ax1] = -shift;
         
         return mat;
     }
@@ -240,6 +311,7 @@ private:
     size_t M_;  // rows
     size_t N_;  // cols
     size_t size_;
+    size_t capacity_;
     Alloc_ alloc_ = Alloc_();
 };
 
@@ -319,6 +391,27 @@ void load_multiply_test() {
     bench.start();
     auto c = a * b;
     cout << " performance: " << complexity / bench.measure() << " op/s" << endl;
+}
+
+void test_append() {
+    Matrix a = {
+        {1, 2, 3},
+        {3, 4, 5},
+        {6, 7, 8},
+        {9, 10, 11}
+    };
+    Matrix b = a;
+    cout << a << endl;
+    a.appendRow(a);
+    cout << a << endl;
+    a.appendRow(a);
+    cout << a << endl;
+
+    cout << b << endl;
+    // b.appendCol({{1}, {2}, {3}, {4}}); // CE
+    b.appendCol({{1,1}, {2,2}, {3,3}, {4,4}});
+    cout << b << endl;
+
 }
 
 void test_brackets() {

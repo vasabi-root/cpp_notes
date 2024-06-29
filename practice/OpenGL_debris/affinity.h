@@ -34,24 +34,30 @@ using std::endl;
 */
 
 void test_affinity() {
-    std::vector<Vec3d_f<>> cube = {
-        {0, 0, 0},
-        {1, 0, 0},
-        {0, 1, 0},
-        {0, 0, 1},
-        {1, 1, 0},
-        {0, 1, 1},
-        {1, 0, 1},
-        {1, 1, 1},
+    Matrix cube = {
+        {0, 0, 0, 1}, // 0
+        {1, 0, 0, 1}, // 1
+        {0, 1, 0, 1}, // 2
+        {0, 0, 1, 1}, // 3 
+        {1, 1, 0, 1}, // 4
+        {0, 1, 1, 1}, // 5
+        {1, 0, 1, 1}, // 6
+        {1, 1, 1, 1}, // 7
+    };
+    std::vector<std::pair<size_t, size_t>> lines = {
+        {0, 1}, {2, 4}, {5, 7}, {3, 6},
+        {0, 3}, {2, 5}, {4, 7}, {1, 6}
     };
 
+    cout << cube << endl;
+    cout << cube.transpose() << endl;
 
+    // for ()
 
     auto rotate_mat = Matrix<>::rotate3dZ(300/3.14);
 
-    for (auto v : cube) {
-        cout << v;
-    }
+
+
 
 
 
