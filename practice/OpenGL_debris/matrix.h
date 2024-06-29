@@ -141,6 +141,18 @@ public:
         return *this;
     }
 
+    Matrix operator - () {
+        Matrix mat(*this);
+        for (size_t i = 0; i < M_; ++i) {
+            for (size_t j = 0; j < N_; ++j) {
+                if (i != j) {
+                    mat.cells_[i*N_+j] = -mat.cells_[i*N_+j];
+                }
+            }
+        }
+        return mat;
+    }
+
     template <typename U, typename UAlloc> requires Plusable<T, U>
     Matrix& operator += (const Matrix<U, UAlloc>& other) {
         assert((M_ == other.M_ && N_ == other.N_));

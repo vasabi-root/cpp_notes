@@ -37,7 +37,9 @@ void test_matrix() {
 int main(int argc, char **argv) {
     cout << endl; 
     Sleep(1000);
-    test_append();
+    // test_append();
+    // play_line(&bresenham_ptrs);
+    test_affinity();
     
     return 0;
 }

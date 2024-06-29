@@ -19,9 +19,9 @@
 
 // cmake -G "MinGW Makefiles" ..
 
-const char* imgName = "output.ph";
+const char* imgName = "output.tga";
 
-void parameter_ptrs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img) {
+void parameter_ptrs(int x0, int y0, int x1, int y1, const TGAColor &color, TGAImage &img) {
     float dt;
     int x = 0, y = 0;
     int *px=&x, *py=&y;
@@ -41,7 +41,7 @@ void parameter_ptrs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &im
     }
 }
 
-void parameter_int_ptrs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img) {
+void parameter_int_ptrs(int x0, int y0, int x1, int y1, const TGAColor &color, TGAImage &img) {
     float dt;
     int x = 0, y = 0;
     int *px = &x, *py = &y;
@@ -65,7 +65,7 @@ void parameter_int_ptrs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage
     }
 }
 
-void parameter_ifs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img) {
+void parameter_ifs(int x0, int y0, int x1, int y1, const TGAColor &color, TGAImage &img) {
     float dt;
     bool steep = false;
 
@@ -88,7 +88,7 @@ void parameter_ifs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img
     }
 }
 
-void parameter_int_ifs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img) {
+void parameter_int_ifs(int x0, int y0, int x1, int y1, const TGAColor &color, TGAImage &img) {
     float dt;
     bool steep = false;
 
@@ -114,7 +114,7 @@ void parameter_int_ifs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage 
     }
 }
 
-void bresenham_ptrs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img) {
+void bresenham_ptrs(int x0, int y0, int x1, int y1, const TGAColor &color, TGAImage &img) {
     float dt;
     int x = 0, y = 0;
     int *px = &x, *py = &y;
@@ -145,7 +145,7 @@ void bresenham_ptrs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &im
     }
 }
 
-void bresenham_ifs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img) {
+void bresenham_ifs(int x0, int y0, int x1, int y1, const TGAColor &color, TGAImage &img) {
     float dt;
     bool steep = false;
 
@@ -179,17 +179,23 @@ void bresenham_ifs(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img
     }
 }
 
-void wu(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img) {
+void wu(int x0, int y0, int x1, int y1, const TGAColor &color, TGAImage &img) {
 
 }   
 
-void draw_line(int x0, int y0, int x1, int y1, TGAColor color, TGAImage &img, bool smooth=true) {
+template <typename T>
+void line(T* p1, T* p2, const TGAColor &c, TGAImage &img) {
+    bresenham_ptrs(p1[0], p1[1], p2[0], p2[1], c, img);
+    // cout << p1[0] << " " << p1[1] << " " << p2[0] << " " <<  p2[1] << endl;
+}
+
+void draw_line(int x0, int y0, int x1, int y1, const TGAColor &color, TGAImage &img, bool smooth=true) {
     if (smooth)
         return wu(x0, y0, x1, y1, color, img);
     return bresenham_ptrs(x0, y0, x1, y1, color, img);
 }
 
-using drawing_func = void (int, int, int, int, TGAColor, TGAImage &);
+using drawing_func = void (int, int, int, int, const TGAColor&, TGAImage &);
 
 void play_line(drawing_func* func) {
     int width = 500, height = 500;

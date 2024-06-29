@@ -6,6 +6,7 @@
 #include "tgaimage.h"
 #include "line.h"
 #include "matrix.h"
+#include "config.h"
 #include <vector>
 #else
 #include <iostream>
@@ -34,7 +35,8 @@ using std::endl;
 */
 
 void test_affinity() {
-    Matrix cube = {
+    TGAImage img(500, 500, TGAImage::RGB);
+    Matrix<double> cube = {
         {0, 0, 0, 1}, // 0
         {1, 0, 0, 1}, // 1
         {0, 1, 0, 1}, // 2
@@ -43,18 +45,50 @@ void test_affinity() {
         {0, 1, 1, 1}, // 5
         {1, 0, 1, 1}, // 6
         {1, 1, 1, 1}, // 7
-    };
+    }; 
+    // 12 рёбер!!!
     std::vector<std::pair<size_t, size_t>> lines = {
-        {0, 1}, {2, 4}, {5, 7}, {3, 6},
-        {0, 3}, {2, 5}, {4, 7}, {1, 6}
+        {0, 1}, {2, 4}, {5, 7}, {3, 6}, 
+        {0, 3}, {2, 5}, {4, 7}, {1, 6},
+        {0, 2}, {1, 4}, {6, 7}, {3, 5}, 
     };
+    double pi = 3.1415;
+    Matrix<double> sizer = {
+        {100, 0, 0, 0}, 
+        {0, 100, 0, 0}, 
+        {0, 0, 100, 0}, 
+        {0, 0, 0, 1},
+    };
+
+    Matrix<double> shifter = {
+        {1, 0, 0, 0},
+        {0, 1, 0, 0},
+        {0, 0, 1, 0},
+        {200, 200, 200, 1},
+    };
+    cube *= sizer * shifter;
+    cout << cube << endl;
+
+    for (double angle = 0; angle < 2*pi; angle += pi/50) {
+        img.clear();
+        auto rotater = Matrix<>::rotate3dX(angle) 
+                     * Matrix<>::rotate3dY(angle)
+                     * Matrix<>::rotate3dZ(angle);
+        auto rotated = cube*(-shifter)*rotater*shifter;
+        // cout << cube;
+        // cout << rotated;
+        for (auto [a, b] : lines ) { 
+            line(rotated[a], rotated[b], ph::red, img); }
+        img.write_tga_file("output.tga");
+        Sleep(50); 
+
+    }
 
     cout << cube << endl;
     cout << cube.transpose() << endl;
 
     // for ()
 
-    auto rotate_mat = Matrix<>::rotate3dZ(300/3.14);
 
 
 
