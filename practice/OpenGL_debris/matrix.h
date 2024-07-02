@@ -58,6 +58,7 @@ public:
         }
     }
 
+    // template <bool U = true>
     Matrix (std::initializer_list<std::initializer_list<T>> list): 
     cells_( Alloc::allocate(alloc_, 2*list.size()*list.begin()->size())), 
     M_(list.size()), N_(list.begin()->size()), size_(M_*N_), capacity_(2*size_)
@@ -73,7 +74,7 @@ public:
         }
     }
 
-    // template <typename U = is_initializer_list<T>::value>
+    // template <bool U = is_initializer_list<T>::value>
     Matrix (std::initializer_list<T> list): 
     cells_(Alloc::allocate(alloc_, 2*list.size())), 
     M_(1), N_(list.size()), size_(M_*N_), capacity_(2*size_) {

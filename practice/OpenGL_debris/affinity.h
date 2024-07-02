@@ -69,7 +69,7 @@ void test_affinity() {
     cube *= sizer * shifter;
     cout << cube << endl;
 
-    for (double angle = 0; angle < 2*pi; angle += pi/50) {
+    for (double angle = 0; angle < 2*pi; angle += pi/60) {
         img.clear();
         auto rotater = Matrix<>::rotate3dX(angle) 
                      * Matrix<>::rotate3dY(angle)

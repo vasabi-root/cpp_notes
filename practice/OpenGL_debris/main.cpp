@@ -1,4 +1,4 @@
-#define CMAKE
+// #define CMAKE
 
 #ifdef CMAKE
 #include <iostream>
