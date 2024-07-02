@@ -4,7 +4,6 @@
 - Скотт Мэйерс
 - Герб Саттер
 
-
 1. Compilation errors:
     1.1. Лексика    (for, if, else, while, ...)
     1.2. Синтаксис  (int i = 1; ...)
