@@ -11,7 +11,7 @@
 #else
 #include <iostream>
 #include "misc/tgaimage.cpp"
-#include "misc/model.cpp"
+#include "model.cpp"
 #include "config.h"
 #include <windows.h>
 #include "../bench.h"
@@ -20,6 +20,7 @@
 #include "line.h"
 #include "matrix.h"
 #include "affinity.h"
+#include "vec.h"
 
 void test_line() {
     play_line(&bresenham_ptrs);
@@ -39,7 +40,14 @@ int main(int argc, char **argv) {
     Sleep(1000);
     // test_append();
     // play_line(&bresenham_ptrs);
-    test_affinity();
+    // test_affinity();
+    // test_multiply();
+    // test_vec();
+    // test_vec4();
+    // test_model_obj(&bresenham_ptrs, "obj/african_head.obj");
+    test_model();
+
+    
     
     return 0;
 }

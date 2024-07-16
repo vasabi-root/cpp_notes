@@ -9,6 +9,8 @@ using std::endl;
 
 using std::array;
 
+
+
 int main() {
     while(0)
     {

@@ -41,6 +41,9 @@ int main()
         a ^= b; 
         b ^= a; // b = b^(a^b) = a;
         a ^= b; // a = (a^b)^a = b;
+
+        int *pa = &a;
+        int *& v = pa;
         
         std::cout << a << " " << b << std::endl;
     }

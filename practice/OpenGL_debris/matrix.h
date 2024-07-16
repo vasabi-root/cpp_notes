@@ -8,6 +8,13 @@
 #include "../bench.h"
 #include <cassert>
 
+#ifdef CMAKE
+#include "geometry.h"
+#else
+#include "misc/geometry.h"
+#endif
+
+
 using std::cin;
 using std::cout;
 using std::endl;
@@ -28,6 +35,16 @@ std::false_type is_initializer_list_f(T);
 
 template <typename T>
 struct is_initializer_list: decltype(is_initializer_list_f(std::declval<T>())) {};
+
+
+template <template <typename...> class C, typename...Ts>
+std::true_type is_base_of_template_impl(const C<Ts...>*);
+
+template <template <typename...> class C>
+std::false_type is_base_of_template_impl(...);
+
+template <typename T, template <typename...> class C>
+using is_base_of_template = decltype(is_base_of_template_impl<C>(std::declval<T*>()));
 
 // T requires to have T(), T(1)
 // TODO: add append() method (get rid of template M_ N_)
@@ -67,9 +84,7 @@ public:
             auto inner = *(list.begin()+i);
             for (size_t j = 0; j < N_; ++j) {
                 Alloc::construct(alloc_, cells_+i*N_+j, 1);
-                if (i < list.size()) {
-                    cells_[i*N_ + j] = *(inner.begin()+j);
-                }
+                cells_[i*N_ + j] = *(inner.begin()+j);
             }
         }
     }
@@ -80,9 +95,7 @@ public:
     M_(1), N_(list.size()), size_(M_*N_), capacity_(2*size_) {
         for (size_t i = 0; i < size_; ++i) {
             Alloc::construct(alloc_, cells_+i, 1);
-            if (i < list.size()) {
-                cells_[i] = *(list.begin()+i);
-            }
+            cells_[i] = *(list.begin()+i);
         }
     }
 
@@ -171,12 +184,12 @@ public:
         return *this;
     }
 
-    // template <typename U>
-    // Matrix operator + (const U& num) const {
-    //     Matrix copy(*this);
-    //     copy += num;
-    //     return copy; // rvo + copy elision
-    // }
+    template <typename U>
+    Matrix operator + (const U& num) const {
+        Matrix copy(*this);
+        copy += num;
+        return copy; // rvo + copy elision
+    }
 
     template <typename U> requires Multiplyable<T, U>
     Matrix& operator *= (U num) {
@@ -194,7 +207,7 @@ public:
 
     template <typename U, typename UAlloc> requires Multiplyable<T, U>
     Matrix operator * (const Matrix<U, UAlloc>& other) const {
-        assert((N_ == other.M_));
+        assert(N_ == other.M_);
         size_t K = other.N_;
         Matrix result(M_, K);
 
@@ -267,18 +280,8 @@ public:
         *this = transpose();
     }
 
-    #if N_ == 1 || M_ == 1
-    T norm() {
-        T val;
-        for (size_t i = 0; i < size_; ++i) {
-            val += cells_[i]*cells_[i];
-        }
-        return std::sqrt(val);
-    }
-    #endif
-
-    size_t rows() { return M_; }
-    size_t cols() { return N_; }
+    size_t rows() const { return M_; }
+    size_t cols() const { return N_; }
 
     static Matrix eye(size_t M, size_t N, T k = 1) {
         Matrix mat(M, N, T(0));
@@ -329,28 +332,22 @@ private:
 };
 
 
-template <typename T, typename Alloc_, typename U>
+template <typename T, typename Alloc_, typename U> requires(std::is_arithmetic_v<U>)
 Matrix<T, Alloc_> operator + (const U& a, Matrix<T, Alloc_> b) { b += a; return b; }
 
-template <typename T, typename Alloc_, typename U>
+template <typename T, typename Alloc_, typename U> requires(std::is_arithmetic_v<U>)
 Matrix<T, Alloc_> operator * (const U& a, Matrix<T, Alloc_> b) { b *= a; return b; }
 
 template <typename Alloc_ = std::allocator<int>>
-using MatrixInt = Matrix<int, Alloc_>;
+using Matrix_i = Matrix<int, Alloc_>;
 
 template <typename Alloc_ = std::allocator<double>>
-using Matrix3d = Matrix<double, Alloc_>;
-
-template <typename Alloc_ = std::allocator<double>>
-using Vec3d_f = Matrix<double, Alloc_>;
-
-template <typename Alloc_ = std::allocator<int>>
-using Vec3d_i = Matrix<int, Alloc_>;
+using Matrix_d = Matrix<double, Alloc_>;
 
 void test_plus() {
     cout << " Testing + operation..." << endl;
-    MatrixInt<> mat1(2, 3), mat2(2, 3);
-    Matrix<double> mat(2, 3);
+    Matrix_i<> mat1(2, 3), mat2(2, 3);
+    Matrix mat(2, 3);
     mat += 2.2;
     cout << mat << endl;
     mat += mat;
@@ -369,7 +366,7 @@ void test_plus() {
 
 void test_multiply() {
     cout << " Testing * operation..." << endl;
-    MatrixInt<> ai(2, 3, 4);
+    Matrix_i<> ai(2, 3, 4);
     Matrix ad(2, 3, 2.0);
     Matrix bd(3, 6, 3.0);
     cout << ad << endl;

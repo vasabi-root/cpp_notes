@@ -49,6 +49,16 @@ source: https://proglib.io/p/git-for-half-an-hour
 `git push origin master` -- отправка изменений из локалки на сервер -- следует отправлять изменения, которые являются реализацией пунктов задачи (не нужно постоянно пушить в репоз). Ветка `master` главная  
 `git pull origin master` -- загрузка репоза из сервера на локалку
 
+### **ОПАСНАЯ СЕКЦИЯ**
+Удаление всех коммитов с первого:  
+`git update-ref -d HEAD`
+
+Удаление по хэшу:  
+Посмотреть хэши: `git log`
+`git reset --hard <hash>`
+
+`git push origin HEAD --force`
+
 ## Branching
 Текущая ветка по умолчанию -- `master`
 `git branch my_impementation` -- создание новой ветки  

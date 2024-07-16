@@ -266,15 +266,15 @@ bool TGAImage::set(int x, int y, TGAColor c) {
 	return true;
 }
 
-int TGAImage::get_bytespp() {
+int TGAImage::get_bytespp() const {
 	return bytespp;
 }
 
-int TGAImage::get_width() {
+int TGAImage::get_width() const {
 	return width;
 }
 
-int TGAImage::get_height() {
+int TGAImage::get_height() const {
 	return height;
 }
 
