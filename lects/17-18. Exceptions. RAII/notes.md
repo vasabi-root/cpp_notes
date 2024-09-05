@@ -7,9 +7,10 @@ C-style способ: возвращать error_code (zero -> ошибки не
 
 С++:  
 Концепция `throw-try-catch`  
+```c++
 throw ExceptionClass  
 try {} catch (ExceptionClass) {}  
-
+```
 ```c++
 struct Exception
 { std::string error; };
@@ -72,7 +73,7 @@ S(int p) try: p(p) {
 ```
 
 ## 7.5. Exceptions specifications
-`noexcept` --  не просто "функция не кидает исключение", а это функция, при запуске которой ничего не пойдёт не так
+`noexcept` --  не просто "функция не кидает исключение", а это функция, при запуске которой ничего не пойдёт не так  
 `noexcept(arg())` -- оператор, который возвращает false, если то, что исполнилось в аргументе:
 1. Вызвает new
 2. Кидает exception

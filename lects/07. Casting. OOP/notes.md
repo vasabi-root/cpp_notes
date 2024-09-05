@@ -1,11 +1,11 @@
 # Виды приведения типов:
 
-Типы быыают pointer-приводимыми и value-приводимыми (promotion)
+Типы бывают pointer-приводимыми и value-приводимыми (promotion)
 
 int x = 0;
 
 1. Static cast -- приведение типов здорового человека
-double d = static_cast<double>(x); 
+double d = static_cast<double>(x);  
 Static -- потому что на этапе компиляции
 
 ЗАПРЕЩЁННЫЕ ЗАКЛИНАНИЯ:

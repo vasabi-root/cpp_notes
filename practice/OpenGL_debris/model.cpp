@@ -92,12 +92,12 @@ TGAImage& Model::draw_wavefront(TGAImage& img) {
 
 void test_model() {
     auto model = std::make_unique<Model>("obj/african_head.obj");
-    TGAImage img(500, 500, TGAImage::RGB);
+    TGAImage img(100, 100, TGAImage::RGB);
     double pi = 3.1415, angle = pi / 20;
 
-    auto rotator = Matrix<>::rotate3dX(angle) 
-                 * Matrix<>::rotate3dY(angle)
-                 * Matrix<>::rotate3dZ(angle);
+    auto rotator = Matrix<>::rotate3dY(angle); 
+    // Matrix<>::rotate3dX(angle) 
+    //              * Matrix<>::rotate3dY(angle)
                  
     for (auto t = 0.0; t < pi*1.99; t += angle) {
         img.clear();
