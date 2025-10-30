@@ -101,3 +101,30 @@ virtual void f() = 0;
 # Виртуальный деструктор
 В любом полиморфном классе надо делать виртуальный деструктор, иначе освобождение ресурсов может происходить некорректно, если мы определили переменную типа `Base&`, но присвоили ей `Derived`
 Чтобы классы считались приводимыми по иерархии вверх (`dynamic_cast`), необходимо определить виртуальный деструктор. 
+
+# Тернарный оператор в ООП
+Есть некоторая неочевидность в работе наследования:
+```cpp
+#include <iostream>
+
+struct A { 
+    virtual void f() const  { std::cout << "A" << std::endl; }
+    A() = default;
+    A(const A&) { std::cout << "A&" << std::endl; }
+    virtual ~A() = default; 
+};
+struct B : A {
+    void f() const override final { std::cout << "B" << std::endl; }
+};
+
+int main () {
+    const A& aVar = A();
+    aVar.f(); // A
+    const A& bVar = B();
+    bVar.f(); // B
+    const A& ternarVar = (false) ? A() : B();
+    ternarVar.f(); // A& A !!! ещё и вызовется конструктор копии
+
+    return 0;
+}
+```
